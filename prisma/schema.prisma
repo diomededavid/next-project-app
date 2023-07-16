@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email     String @unique
+  password  String
+  firstName String
+  lastName  String
+
+  projects Project[]
+  tasks    Task[]
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  updadatedAt DateTime @updatedAt
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  name        String
+  description String?
+  due         DateTime?
+  tasks       Task[]
+  deleted     Boolean   @default(false)
+
+  // Tells Prisma that to create a unique constraint that multiple projects at the same name
+  @@unique([ownerId, name])
+
+  // Tells Prisma that set aside an index becuase a query will be written for it so it does not scan entire table looking for project
+  @@index([ownerId, id])
+}
+
+enum TASK_STATUS {
+  NOT_STARTED
+  STARTED
+  COMPLETED
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  updadatedAt DateTime @updatedAt
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: id)
+
+  status      TASK_STATUS @default(NOT_STARTED)
+  name        String
+  description String
+
+  due       DateTime?
+  //  Soft delete data never relly gets deleted, so it can be easily retrieved in case of rollbakc, etc.
+  deleted   Boolean   @default(false)
+  Project   Project?  @relation(fields: [projectId], references: [id])
+  projectId String?
+
+  @@index([ownerId])
+}
